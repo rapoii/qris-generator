@@ -1,3 +1,3 @@
-"""QRIS Generator - Generate QRIS QR codes with any nominal amount."""
+"""QRIS Generator - Universal merchant QRIS QR code generator."""
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

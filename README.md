@@ -1,158 +1,143 @@
-# 🔴 QRIS Generator
+# QRIS Generator
 
-Generate QRIS (Quick Response Code Indonesian Standard) QR codes with any nominal amount — no API needed.
+Generator QRIS QR code dengan nominal bebas untuk **semua merchant**.
 
-![banner](docs/banner.png)
+Support: DANA, GoPay, ShopeePay, OVO, LinkAja, BCA, BRI, Mandiri, BNI, dan semua provider QRIS Indonesia lainnya.
 
-## What is this?
+## Fitur
 
-A Python tool that generates valid QRIS Dynamic QR codes from merchant data. Encode any amount into a scannable QRIS code that routes payments to your DANA/e-wallet account.
+- **Setup wizard** — scan QRIS QR merchant Anda, tool otomatis ekstrak semua data
+- **Generate QR** — masukkan nominal apapun, dapat QR code QRIS langsung
+- **Batch** — generate banyak nominal sekaligus
+- **Multi-profile** — simpan beberapa merchant, switch kapan saja
+- **Decode** — baca QRIS dari gambar manapun
+- **Provider-agnostic** — bukan hanya DANA, tapi SEMUA provider
 
-**How QRIS works:**
-- QRIS uses EMVCo MPM (Merchant-Presented Mode) standard
-- Data encoded as TLV (Tag-Length-Value) inside the QR code
-- Dynamic QRIS (Tag 01=12) embeds the amount — different amount = different QR
-- Static QRIS (Tag 01=11) — one QR, customer enters amount
-
-## Install
+## Instalasi
 
 ```bash
+cd qris-generator
 pip install pillow qrcode pyzbar
 ```
 
-`pyzbar` needs [zbar DLL](https://github.com/NaturalHistoryMuseum/pyzbar) on Windows — download `libzbar-64.dll` and put in PATH or script directory.
+> **Note (Windows):** `pyzbar` membutuhkan `zbarimg`. Install dari: https://github.com/NaturalHistoryMuseum/pyzbar
+> **Note (Linux):** `sudo apt install libzbar0`
 
 ## Quick Start
 
+### 1. Setup merchant Anda
+
 ```bash
-# Single QR
-python generate.py 5000
-
-# Batch generate
-python generate.py 1000 5000 10000 50000 100000
-
-# Decode existing QRIS image
-python generate.py --decode path/to/qris.png
-
-# Show raw payload only
-python generate.py --payload 15000
+python generate.py setup
 ```
 
-## Output
+Tool akan minta:
+1. **Path gambar QRIS** — screenshot/foto QRIS merchant Anda
+2. **Nama profile** — misalnya `warung`, `toko_abc`
+3. Otomatis decode dan simpan semua data merchant
 
-```
-QRIS Generator v1.0.0
-Merchant : rapoi
-NMID     : ID1025460925684
-Provider : DANA (936009150000077253)
+**Cara mendapatkan QRIS:**
+1. Buka aplikasi bank/e-wallet (DANA, GoPay, BCA, dll)
+2. Menu "Terima Pembayaran" / "QRIS Merchant" / "Tampilkan QRIS"
+3. Screenshot QRIS yang muncul
+4. Simpan sebagai file PNG/JPG
 
-  Rp     5,000  →  qris_Rp5.000.png  (CRC: OK)
-  Rp    10,000  →  qris_Rp10.000.png  (CRC: OK)
-  Rp    15,000  →  qris_Rp15.000.png  (CRC: OK)
-  Rp   999,999  →  qris_Rp999.999.png (CRC: OK)
+### 2. Generate QR code
 
-Done! 4 QRIS generated in ./output
-```
+```bash
+# Single
+python generate.py 25000
+# → output/qris_Rp25.000.png
 
-## QRIS EMVCo Structure
-
-Every QRIS QR code contains this TLV payload:
-
-| Tag | Name | Example | Note |
-|-----|------|---------|------|
-| `00` | Payload Format | `01` | EMVCo v1 |
-| `01` | Initiation Method | `12` | 11=Static, **12=Dynamic** |
-| `26` | DANA Account Info | Sub-TLV | Provider routing |
-| `26.00` | GUI | `ID.DANA.WWW` | Provider identifier |
-| `26.01` | Account | `936009150000077253` | Your account |
-| `51` | QRIS National Info | Sub-TLV | QRIS standard |
-| `51.02` | **NMID** | `ID1025460925684` | National Merchant ID |
-| `52` | MCC | `7372` | Category code |
-| `53` | Currency | `360` | IDR (ISO 4217) |
-| `54` | **Amount** | `5000` | **Rp5.000** |
-| `58` | Country | `ID` | Indonesia |
-| `59` | Merchant | `rapoi` | Display name |
-| `63` | CRC | `879E` | CRC-16/CCITT-FALSE |
-
-**Why different amount = different QR?** Only Tag `54` (amount) and Tag `63` (CRC) change. Everything else stays identical. The CRC auto-recalculates from the payload.
-
-## Use as Library
-
-```python
-from qris_gen.core import build_qris_payload, verify_crc, parse_payload
-from qris_gen.renderer import render_qris
-
-# Build payload
-payload = build_qris_payload(
-    amount=25000,
-    nmid="ID1025460925684",
-    merchant_name="rapoi",
-    dana_account="936009150000077253",
-)
-
-# Verify CRC
-assert verify_crc(payload)
-
-# Generate image
-img = render_qris(payload, amount=25000, merchant_name="rapoi", 
-                  nmid="ID1025460925684", output_path="qris_25k.png")
-
-# Parse any QRIS payload
-parsed = parse_payload(payload)
-print(parsed["amount"])  # "25000"
-print(parsed["merchant_name"])  # "rapoi"
+# Batch
+python generate.py 5000 10000 25000 50000 100000
 ```
 
-## Customizing Merchant Data
+### 3. Lainnya
 
-Edit `DEFAULT_MERCHANT` in `generate.py`:
+```bash
+# List profiles
+python generate.py --list
 
-```python
-DEFAULT_MERCHANT = {
-    "nmid": "ID1025460925684",      # Your NMID
-    "merchant_name": "rapoi",       # Display name
-    "dana_account": "936009150000077253",  # DANA account
-    "dana_sub_account": "000077253",
-    "category": "UMI",
-    "mcc": "7372",                  # Merchant Category Code
-    "currency": "360",              # IDR
-    "country": "ID",
-    "city": "0293",
-    "postal_code": "42125",
+# Pakai profile tertentu
+python generate.py --profile warung 25000
+
+# Decode QRIS apapun
+python generate.py --decode qris_merchant.png
+
+# Lihat detail profile
+python generate.py --show
+python generate.py --show warung
+
+# Hapus profile
+python generate.py --delete warung
+
+# Set default
+python generate.py --set-default warung
+
+# Raw payload (tanpa gambar)
+python generate.py --payload 25000
+```
+
+## Config
+
+Disimpan di `~/.qris_generator/config.json`:
+
+```json
+{
+  "default_profile": "warung",
+  "profiles": {
+    "warung": {
+      "provider": "DANA",
+      "gui": "ID.DANA.WWW",
+      "merchant_name": "TOKO RAJA",
+      "mcc": "7372",
+      "tag26_raw": "0011ID.DANA.WWW...",
+      "tag51_raw": "0013ID.CO.QRIS.WWW...",
+      "tag26_sub": {"00": "ID.DANA.WWW", "01": "936009150000077253", "02": "000077253", "03": "UMI"},
+      "tag51_sub": {"00": "ID.CO.QRIS.WWW", "02": "ID1025460925684", "03": "UMI"},
+      "city": "0293",
+      "postal_code": "42125",
+      "currency": "360",
+      "country": "ID"
+    }
+  }
 }
 ```
 
-## How to get NMID / Merchant Data?
-
-1. Register as QRIS merchant through DANA, GoPay, BCA, or any Payment Service Provider
-2. They give you a QR code — decode it with `python generate.py --decode your_qris.png`
-3. Copy the decoded NMID, account info, etc. into `DEFAULT_MERCHANT`
-4. Now generate unlimited QR codes with any amount
-
-## Verification
-
-This tool generates **byte-for-byte identical payloads** compared to real QRIS codes from merchant apps. Verified by:
-1. Generating QRIS for Rp5.000, Rp12.358, Rp10.000, Rp15.000
-2. Decoding the original merchant QR images
-3. Comparing payloads — **100% match** (including CRC)
-
-## Project Structure
+## Arsitektur
 
 ```
 qris-generator/
-├── generate.py          # CLI entry point
+├── generate.py           # CLI entry point
 ├── qris_gen/
 │   ├── __init__.py
-│   ├── core.py          # TLV builder + CRC-16 calculator + parser
-│   └── renderer.py      # QR image generator with QRIS styling
-├── output/              # Generated QR images
+│   ├── core.py           # TLV builder, CRC-16, parser
+│   ├── renderer.py       # QR image renderer (PIL + qrcode)
+│   └── config.py         # Config/profile management, provider detection
+├── output/               # Generated QR images
 └── README.md
 ```
+
+## Supported Providers
+
+| Provider | GUI |
+|----------|-----|
+| DANA | ID.DANA.WWW |
+| GoPay/GrabPay | ID.CO.GRABWALKING.WWW |
+| ShopeePay | ID.CO.SHOOPEE.WWW |
+| OVO | ID.CO.OCBC.NISP |
+| LinkAja | ID.CO.LINKAJA.WWW |
+| BCA | ID.CO.BCA.WWW |
+| BRI | ID.CO.BRI.WWW |
+| Mandiri | ID.CO.MANDIRI.WWW |
+| BNI | ID.CO.BNI.WWW |
+| BSI | ID.CO.BSI.WWW |
+| CIMB Niaga | ID.CO.CIMBNIAGA.WWW |
+| DOKU | ID.CO.DOKU.WWW |
+| Jenius | ID.CO.JENIUS.WWW |
+| ...dan lainnya | Auto-detected |
 
 ## License
 
 MIT
-
-## Disclaimer
-
-This tool generates valid QRIS QR codes for educational and operational purposes. The QR code itself is just a data container — actual payment routing is handled by Bank Indonesia's payment system. You need a registered merchant account (NMID) for payments to work.
