@@ -1,7 +1,58 @@
+# QRIS Generator - .gitignore
+
+# Output directory
+output/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+
+# Packaging
 *.egg-info/
+*.egg
+.eggs/
 dist/
 build/
-output/
+sdist/
+wheels/
+
+# Virtual environments
 .venv/
+venv/
+ENV/
+env/
+
+# App config directory
+.qris_generator/
+
+# Environment / secrets
+.env
+.env.*
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# QRIS images in root only (keep docs/)
+/*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Pytest / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
